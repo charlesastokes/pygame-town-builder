@@ -19,6 +19,10 @@ GRID_HEIGHT = 10
 TILE_WIDTH = 64
 TILE_HEIGHT = 32
 
+# Compute grid vertical offset to center it
+GRID_PIXEL_HEIGHT = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT // 2)
+GRID_OFFSET_Y = (SCREEN_HEIGHT - GRID_PIXEL_HEIGHT) // 2
+
 # Define colors
 colors = [
     (255, 0, 0),    # Red
@@ -37,13 +41,13 @@ world = [[None for x in range(GRID_WIDTH)] for y in range(GRID_HEIGHT)]
 # Function to convert grid coordinates to isometric screen coordinates
 def grid_to_iso(x, y):
     screen_x = (x - y) * (TILE_WIDTH // 2) + SCREEN_WIDTH // 2
-    screen_y = (x + y) * (TILE_HEIGHT // 2)
+    screen_y = (x + y) * (TILE_HEIGHT // 2) + GRID_OFFSET_Y
     return screen_x, screen_y
 
 # Function to convert screen coordinates to grid coordinates
 def iso_to_grid(screen_x, screen_y):
     dx = screen_x - SCREEN_WIDTH // 2
-    dy = screen_y
+    dy = screen_y - GRID_OFFSET_Y
     a = dx / (TILE_WIDTH / 2)
     b = dy / (TILE_HEIGHT / 2)
     x = (a + b) / 2
