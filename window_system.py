@@ -3,8 +3,9 @@
 import pygame
 
 class PaletteWindow:
-    def __init__(self, colors, screen_width, screen_height, width=200, height=100):
-        self.colors = colors
+    def __init__(self, items, screen_width, screen_height, width=200, height=100, use_images=False):
+        self.items = items  # List of colors or images
+        self.use_images = use_images
         self.width = width
         self.height = height
         self.screen_width = screen_width
@@ -17,7 +18,7 @@ class PaletteWindow:
         self.minimized = False
         self.minimized_height = 30  # Height when minimized
 
-    def handle_event(self, event, selected_color):
+    def handle_event(self, event, selected_item):
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = event.pos
             # Check if click is within the palette window
@@ -30,19 +31,19 @@ class PaletteWindow:
                         self.is_dragging = True
                         self.offset_x = self.x - mouse_x
                         self.offset_y = self.y - mouse_y
-                    # Check if click is on a color box when not minimized
+                    # Check if click is on an item when not minimized
                     if not self.minimized:
                         palette_margin = 10
-                        color_box_size = (self.width - 2 * palette_margin) // len(self.colors)
-                        for idx, color in enumerate(self.colors):
+                        item_box_size = (self.width - 2 * palette_margin) // len(self.items)
+                        for idx, item in enumerate(self.items):
                             rect = pygame.Rect(
-                                self.x + palette_margin + idx * color_box_size,
+                                self.x + palette_margin + idx * item_box_size,
                                 self.y + self.minimized_height + 10,
-                                color_box_size - 5,
-                                color_box_size - 5
+                                item_box_size - 5,
+                                item_box_size - 5
                             )
                             if rect.collidepoint(mouse_x, mouse_y):
-                                selected_color = color
+                                selected_item = item
                 elif event.button == 3:  # Right click
                     pass  # You can add more functionality here
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -56,12 +57,12 @@ class PaletteWindow:
                 # Keep the window within the screen bounds
                 self.x = max(0, min(self.x, self.screen_width - self.width))
                 self.y = max(0, min(self.y, self.screen_height - self.height))
-        return selected_color
+        return selected_item
 
     def update(self):
         pass  # Add any updates if necessary
 
-    def draw(self, surface, selected_color):
+    def draw(self, surface, selected_item, zoom_factor=1.0):
         # Draw the window background
         if self.minimized:
             window_height = self.minimized_height
@@ -80,16 +81,21 @@ class PaletteWindow:
         if self.minimized:
             return  # Do not draw palette contents when minimized
 
-        # Draw the color palette inside the window
+        # Draw the items inside the window
         palette_margin = 10
-        color_box_size = (self.width - 2 * palette_margin) // len(self.colors)
-        for idx, color in enumerate(self.colors):
+        item_box_size = (self.width - 2 * palette_margin) // len(self.items)
+        for idx, item in enumerate(self.items):
             rect = pygame.Rect(
-                self.x + palette_margin + idx * color_box_size,
+                self.x + palette_margin + idx * item_box_size,
                 self.y + self.minimized_height + 10,
-                color_box_size - 5,
-                color_box_size - 5
+                item_box_size - 5,
+                item_box_size - 5
             )
-            pygame.draw.rect(surface, color, rect)
-            if color == selected_color:
+            if self.use_images:
+                # Resize the image for the palette
+                image = pygame.transform.smoothscale(item, (item_box_size - 5, item_box_size - 5))
+                surface.blit(image, rect)
+            else:
+                pygame.draw.rect(surface, item, rect)
+            if item == selected_item:
                 pygame.draw.rect(surface, (255, 255, 255), rect, 3)

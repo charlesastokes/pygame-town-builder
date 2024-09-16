@@ -11,7 +11,7 @@ pygame.init()
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Isometric World Building Game with Zoom Functionality")
+pygame.display.set_caption("Isometric World Building Game with Tile Images")
 
 # Define grid dimensions
 GRID_WIDTH = 10
@@ -28,23 +28,24 @@ def calculate_grid_offset():
     GRID_PIXEL_HEIGHT = (GRID_WIDTH + GRID_HEIGHT) * (TILE_HEIGHT // 2)
     GRID_OFFSET_Y = (SCREEN_HEIGHT - GRID_PIXEL_HEIGHT) // 2
 
-# Define colors
-colors = [
-    (255, 0, 0),    # Red
-    (0, 255, 0),    # Green
-    (0, 0, 255),    # Blue
-    (255, 255, 0),  # Yellow
-    (255, 165, 0),  # Orange
-    (128, 0, 128),  # Purple
-    (255, 192, 203) # Pink
+# Load tile images
+tile_image_files = [
+    "grass_texture.png",
+    "water_texture.png",
+    #"sand_tile.png",
+    #"stone_tile.png"
 ]
-selected_color = colors[0]
+tile_images = []
+for filename in tile_image_files:
+    image = pygame.image.load(filename).convert_alpha()
+    tile_images.append(image)
+selected_tile = tile_images[0]
 
-# Create a 2D grid to represent the world, storing the color of each tile
+# Create a 2D grid to represent the world, storing the tile image index
 world = [[None for x in range(GRID_WIDTH)] for y in range(GRID_HEIGHT)]
 
 # Instantiate the palette window
-palette_window = PaletteWindow(colors, SCREEN_WIDTH, SCREEN_HEIGHT)
+palette_window = PaletteWindow(tile_images, SCREEN_WIDTH, SCREEN_HEIGHT, use_images=True)
 
 # Update tile dimensions based on zoom factor
 def update_tile_dimensions():
@@ -55,6 +56,9 @@ def update_tile_dimensions():
         TILE_WIDTH = 8
         TILE_HEIGHT = 4
     calculate_grid_offset()
+    # Resize tile images based on zoom
+    global resized_tile_images
+    resized_tile_images = [pygame.transform.smoothscale(img, (TILE_WIDTH, TILE_HEIGHT)) for img in tile_images]
 
 update_tile_dimensions()
 
@@ -94,7 +98,7 @@ while running:
                 update_tile_dimensions()
             else:
                 # Handle left click
-                selected_color = palette_window.handle_event(event, selected_color)
+                selected_tile = palette_window.handle_event(event, selected_tile)
                 mouse_x, mouse_y = event.pos
                 # Check if click is outside the palette window
                 if not palette_window.rect.collidepoint(mouse_x, mouse_y):
@@ -102,12 +106,12 @@ while running:
                     grid_x, grid_y = iso_to_grid(mouse_x, mouse_y)
                     # Check if grid coordinates are within bounds
                     if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
-                        if world[grid_y][grid_x] == selected_color:
-                            world[grid_y][grid_x] = None  # Remove color
+                        if world[grid_y][grid_x] == selected_tile:
+                            world[grid_y][grid_x] = None  # Remove tile
                         else:
-                            world[grid_y][grid_x] = selected_color  # Set selected color
+                            world[grid_y][grid_x] = selected_tile  # Place selected tile
         else:
-            selected_color = palette_window.handle_event(event, selected_color)
+            selected_tile = palette_window.handle_event(event, selected_tile)
 
     # Update
     palette_window.update()
@@ -119,22 +123,23 @@ while running:
     for y in range(GRID_HEIGHT):
         for x in range(GRID_WIDTH):
             iso_x, iso_y = grid_to_iso(x, y)
-            # Draw tile outline
-            tile_points = [
-                (iso_x, iso_y - TILE_HEIGHT // 2),
-                (iso_x + TILE_WIDTH // 2, iso_y),
-                (iso_x, iso_y + TILE_HEIGHT // 2),
-                (iso_x - TILE_WIDTH // 2, iso_y)
-            ]
             if world[y][x]:
-                # Filled tile with the assigned color
-                pygame.draw.polygon(screen, world[y][x], tile_points)
+                # Draw the tile image
+                tile_image = resized_tile_images[tile_images.index(world[y][x])]
+                tile_rect = tile_image.get_rect(center=(iso_x, iso_y))
+                screen.blit(tile_image, tile_rect)
             else:
-                # Empty tile
+                # Draw empty tile outline
+                tile_points = [
+                    (iso_x, iso_y - TILE_HEIGHT // 2),
+                    (iso_x + TILE_WIDTH // 2, iso_y),
+                    (iso_x, iso_y + TILE_HEIGHT // 2),
+                    (iso_x - TILE_WIDTH // 2, iso_y)
+                ]
                 pygame.draw.polygon(screen, (255, 255, 255), tile_points, 1)
 
     # Draw the palette window
-    palette_window.draw(screen, selected_color)
+    palette_window.draw(screen, selected_tile, zoom_factor)
 
     # Update the display
     pygame.display.flip()
